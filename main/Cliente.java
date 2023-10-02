@@ -5,15 +5,14 @@ package main;
 public class Cliente extends Thread
 {
     private String nome;
-    private int idC;
     private int tempo;
-    private int total = 0;
-    private static Servidor serv = new Servidor("01", 12345, 900);
+    private static Servidor serv = new Servidor("01", 900);
+    private int tanque = 20;
+    private int countAbast = 0;
 
-    public Cliente(String nome, int idC, int tempo)
+    public Cliente(String nome, int tempo)
     {
         this.nome = nome;
-        this.idC = idC;
         this.tempo = tempo;
         start();
     }
@@ -21,9 +20,30 @@ public class Cliente extends Thread
     @Override
     public void run()
     {
+        while(this.countAbast < 3)
+        {
+            this.dirigir();
+            if (this.tanque == 0)
+            {
+                if(serv.temAlguemAbastecendo())
+                {
+                    try {
+                        System.out.println("Cliente " + this.nome + " aguardando abastecimento.");
+                        while(serv.temAlguemAbastecendo())
+                        {
+                            wait();
+                        }
+                    } catch (Exception e) {
+                        
+                    }
+                }
+                int newTanque = serv.abastecer(this.tanque, this.nome);
+                this.setTanque(newTanque);
+                countAbast ++;
+            }
+        }
+        System.out.println("Cliente " + this.nome + " terminou.");
         // teste();
-        this.total = serv.somar(this.nome);
-        System.out.println("Resultado de " + this.nome + " = " + this.total + ".");
     }
 
     /** 
@@ -55,12 +75,7 @@ public class Cliente extends Thread
             System.out.println("Deu bo no metodo teste da thread Cliente" + this.nome);
         }
 
-        System.out.println("Cliente " + this.idC + " terminado");
-    }
-
-    public int getidC()
-    {
-        return this.idC;
+        System.out.println("Cliente " + this.nome + " terminado");
     }
 
     public String getNome()
@@ -68,8 +83,19 @@ public class Cliente extends Thread
         return this.nome;
     }
 
-    public int getTotal()
+    public void dirigir()
     {
-        return total;
+        try {
+            sleep(tempo);
+            tanque -= 1;
+            System.out.println("Tanque " + this.nome + " = " + this.tanque + ".");
+        } catch (Exception e) {
+            System.out.println("Deu B.O. no metodo dirigir() da Thread Cliente " + this.nome + ".");
+        }
+    }
+
+    public void setTanque(int newTanque)
+    {
+        this.tanque = newTanque;
     }
 }

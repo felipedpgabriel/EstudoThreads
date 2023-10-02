@@ -6,14 +6,12 @@ package main;
 public class Servidor implements Runnable
 {
     private String nome;
-    private int senha;
     private int tempo;
-    private int soma;
+    private boolean alguemAbastecendo = false;
 
-    public Servidor(String nome, int senha, int tempo)
+    public Servidor(String nome, int tempo)
     {
         this.nome = nome;
-        this.senha = senha;
         this.tempo = tempo;
         // Thread t = new Thread(this);
         // t.start();
@@ -31,7 +29,7 @@ public class Servidor implements Runnable
         {
             for(int i=0;i<6;i++)
             {
-                System.out.println("Teste de Servidor " + i + ".");
+                System.out.println("Servidor " + i + ".");
                 Thread.sleep(tempo);
             }
         }
@@ -41,17 +39,7 @@ public class Servidor implements Runnable
             System.out.println("Deu bo no metodo teste da thread Servidor " + this.nome);
         }
 
-        System.out.println("Servidor " + this.senha + " terminado!");
-    }
-
-    public int getSenha()
-    {
-        return this.senha;
-    }
-
-    public void setSenha(int newSenha)
-    {
-        this.senha = newSenha;
+        System.out.println("Teste de servidor " + this.nome + " terminado!");
     }
 
     public String getNome()
@@ -59,25 +47,30 @@ public class Servidor implements Runnable
         return this.nome;
     }
 
-    public int getSoma()
+    public synchronized int abastecer(int tanque, String nome)
     {
-        return this.soma;
+        try {
+            System.out.println("Cliente " + nome + " abastecendo.");
+            setAbastecimento(true);
+            Thread.sleep(5000);
+            tanque += 20;
+        } catch (Exception e) {
+            System.out.println("Deu B.O. no sleep do abastecimento");
+        }
+        System.out.println("Cliente " + nome + " terminou de abastecer.");
+        setAbastecimento(false);
+        notifyAll();
+
+        return tanque;
     }
 
-    public synchronized int somar(String nome)
+    public boolean temAlguemAbastecendo()
     {
-        soma = 0;
-        for(int i=0;i<6;i++)
-        {
-            soma += i;
-            System.out.println("Soma do cliente " + nome + " = " + soma);
-            try {
-                Thread.sleep(200);
-            } catch (Exception e) {
-                // TODO: handle exception
-            }
-        }
+        return this.alguemAbastecendo;
+    }
 
-        return soma;
+    public void setAbastecimento(boolean estado)
+    {
+        this.alguemAbastecendo = estado;
     }
 }
