@@ -7,8 +7,10 @@ public class Cliente extends Thread
     private String nome;
     private int tempo;
     private static Servidor serv = new Servidor("01", 900);
-    private int tanque = 20;
+    private int tanque = 12;
     private int countAbast = 0;
+    private boolean estaSuspensa = false;
+    private boolean foiTerminada = false;
 
     public Cliente(String nome, int tempo)
     {
@@ -20,8 +22,23 @@ public class Cliente extends Thread
     @Override
     public void run()
     {
-        while(this.countAbast < 3)
+        while(this.countAbast < 2)
         {
+            synchronized(this)
+            {
+                while(estaSuspensa)
+                {
+                    try {
+                        wait();
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                    }
+                }
+                if(this.foiTerminada)
+                {
+                    break;
+                }
+            }
             this.dirigir();
             if (this.tanque == 0)
             {
@@ -34,7 +51,6 @@ public class Cliente extends Thread
                             wait();
                         }
                     } catch (Exception e) {
-                        
                     }
                 }
                 int newTanque = serv.abastecer(this.tanque, this.nome);
@@ -97,5 +113,25 @@ public class Cliente extends Thread
     public void setTanque(int newTanque)
     {
         this.tanque = newTanque;
+    }
+
+    public void suspender()
+    {
+        this.estaSuspensa = true;
+        System.out.println("Cliente " + this.nome + "suspenso!");
+    }
+
+    public synchronized void resumir()
+    {
+        this.estaSuspensa = false;
+        notify();
+        System.out.println("Cliente " + this.nome + "on!");
+    }
+
+    public synchronized void parar()
+    {
+        this.foiTerminada = true;
+        // notify();
+        System.out.println("Cliente " + this.nome + " encerrado!");
     }
 }

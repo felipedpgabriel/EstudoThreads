@@ -52,14 +52,14 @@ public class Servidor implements Runnable
         try {
             System.out.println("Cliente " + nome + " abastecendo.");
             setAbastecimento(true);
-            Thread.sleep(5000);
-            tanque += 20;
+            Thread.sleep(2000);
+            tanque += 5;
         } catch (Exception e) {
             System.out.println("Deu B.O. no sleep do abastecimento");
         }
         System.out.println("Cliente " + nome + " terminou de abastecer.");
         setAbastecimento(false);
-        notifyAll();
+        // notifyAll();
 
         return tanque;
     }
@@ -73,4 +73,6 @@ public class Servidor implements Runnable
     {
         this.alguemAbastecendo = estado;
     }
+
+    
 }
