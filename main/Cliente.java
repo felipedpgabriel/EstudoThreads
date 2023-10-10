@@ -1,28 +1,55 @@
 package main;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+import javax.xml.crypto.Data;
+
 /**
  * Classe para testar Threads por meio da heranca a classe Thread
  */
 public class Cliente extends Thread
 {
+    private String servIP;
+    private int servPort;
     private String nome;
-    private int tempo;
-    private static Servidor serv = new Servidor("01", 900);
-    private int tanque = 12;
-    private int countAbast = 0;
     private boolean estaSuspensa = false;
     private boolean foiTerminada = false;
+    private String inTxt = "";
+    private final String keyClose = "fechar";
+    private DataOutputStream saida;
+    private Socket socket;
+    private DataInputStream entrada;
 
-    public Cliente(String nome, int tempo)
+    public Cliente(String servIP, int servPort, String nome)
     {
+        this.servIP = servIP;
+        this.servPort = servPort;
         this.nome = nome;
-        this.tempo = tempo;
-        start();
+        this.start();
     }
 
     @Override
     public void run()
     {
-        while(this.countAbast < 2)
+        try {
+            System.out.println("Inicia conexao");
+            socket = new Socket(servIP, servPort);
+            saida = new DataOutputStream(socket.getOutputStream());
+            entrada = new DataInputStream(socket.getInputStream());
+
+        } catch (UnknownHostException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        while(!inTxt.equals(keyClose))
         {
             synchronized(this)
             {
@@ -31,7 +58,7 @@ public class Cliente extends Thread
                     try {
                         wait();
                     } catch (Exception e) {
-                        // TODO: handle exception
+                        e.printStackTrace();
                     }
                 }
                 if(this.foiTerminada)
@@ -39,80 +66,42 @@ public class Cliente extends Thread
                     break;
                 }
             }
-            this.dirigir();
-            if (this.tanque == 0)
-            {
-                if(serv.temAlguemAbastecendo())
-                {
-                    try {
-                        System.out.println("Cliente " + this.nome + " aguardando abastecimento.");
-                        while(serv.temAlguemAbastecendo())
-                        {
-                            wait();
-                        }
-                    } catch (Exception e) {
-                    }
-                }
-                int newTanque = serv.abastecer(this.tanque, this.nome);
-                this.setTanque(newTanque);
-                countAbast ++;
+
+            try {
+                write("teste " + getNome());
+                sleep(500);
+                System.out.println(read());
+                sleep(1000);
+                write("fechar");
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
             }
         }
-        System.out.println("Cliente " + this.nome + " terminou.");
-        // teste();
-    }
 
-    /** 
-     * Executa o metodo join(), ja com a estrutura try-catch
-     * */
-    public void holdOn()
-    {
         try {
-            join();
-        } catch (Exception e) {
+            System.out.println("Fechando " + getNome());
+            entrada.close();
+            saida.close();
+            socket.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
-            System.out.println("Deu bo no holdON da thread Cliente" + this.nome);
         }
     }
 
-    public void teste()
+    public void write(String texto) throws IOException
     {
-        try
-        {
-            for(int i=0;i<6;i++)
-            {
-                System.out.println("Teste de Cliente " + this.getName() + " " + i + ".");
-                sleep(tempo);
-            }
-        }
-        catch(InterruptedException e)
-        {
-            e.printStackTrace();
-            System.out.println("Deu bo no metodo teste da thread Cliente" + this.nome);
-        }
-
-        System.out.println("Cliente " + this.nome + " terminado");
+        this.saida.writeUTF(texto);
+        this.inTxt = texto;
     }
 
-    public String getNome()
+    public String read() throws IOException
     {
-        return this.nome;
-    }
-
-    public void dirigir()
-    {
-        try {
-            sleep(tempo);
-            tanque -= 1;
-            System.out.println("Tanque " + this.nome + " = " + this.tanque + ".");
-        } catch (Exception e) {
-            System.out.println("Deu B.O. no metodo dirigir() da Thread Cliente " + this.nome + ".");
-        }
-    }
-
-    public void setTanque(int newTanque)
-    {
-        this.tanque = newTanque;
+        return this.entrada.readUTF();
     }
 
     public void suspender()
@@ -133,5 +122,17 @@ public class Cliente extends Thread
         this.foiTerminada = true;
         // notify();
         System.out.println("Cliente " + this.nome + " encerrado!");
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public String getServIP() {
+        return servIP;
+    }
+
+    public int getServPort() {
+        return servPort;
     }
 }

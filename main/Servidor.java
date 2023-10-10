@@ -1,78 +1,45 @@
 package main;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.net.Socket;
+
 /**
  * Classe para testar Threads por meio da interface Runnable
  */
 public class Servidor implements Runnable
 {
-    private String nome;
-    private int tempo;
-    private boolean alguemAbastecendo = false;
+    // private static ServerSocket server;
+    private Socket socket;
 
-    public Servidor(String nome, int tempo)
+    public Servidor(Socket socket)
     {
-        this.nome = nome;
-        this.tempo = tempo;
-        // Thread t = new Thread(this);
-        // t.start();
+        this.socket = socket;
     }
 
     @Override
     public void run()
     {
-        teste();
-    }
-
-    public void teste()
-    {
         try
         {
-            for(int i=0;i<6;i++)
-            {
-                System.out.println("Servidor " + i + ".");
-                Thread.sleep(tempo);
-            }
-        }
-        catch(InterruptedException e)
-        {
-            e.printStackTrace();
-            System.out.println("Deu bo no metodo teste da thread Servidor " + this.nome);
-        }
+            System.out.println("Aguardadno mensagem...");
+            // 4 - Define entrada do servidor
+            DataInputStream entrada = new DataInputStream(socket.getInputStream());
+            String mensagem = entrada.readUTF();
+            String novaMensagem = mensagem = mensagem.toUpperCase();
 
-        System.out.println("Teste de servidor " + this.nome + " terminado!");
-    }
+            System.out.println("Devolvendo mensagem...");
+            // 5 - Define saida do servidor
+            DataOutputStream saida = new DataOutputStream(socket.getOutputStream());
+            saida.writeUTF(novaMensagem);
 
-    public String getNome()
-    {
-        return this.nome;
-    }
-
-    public synchronized int abastecer(int tanque, String nome)
-    {
-        try {
-            System.out.println("Cliente " + nome + " abastecendo.");
-            setAbastecimento(true);
-            Thread.sleep(2000);
-            tanque += 5;
+            System.out.println("Encerrando...");
+            // 6 - Fecha streams de entrada e saida e sockets de comunicacao e conexao
+            entrada.close();
+            saida.close();
+            socket.close(); // comunicacao    
         } catch (Exception e) {
-            System.out.println("Deu B.O. no sleep do abastecimento");
+            // TODO: handle exception
         }
-        System.out.println("Cliente " + nome + " terminou de abastecer.");
-        setAbastecimento(false);
-        // notifyAll();
-
-        return tanque;
     }
-
-    public boolean temAlguemAbastecendo()
-    {
-        return this.alguemAbastecendo;
-    }
-
-    public void setAbastecimento(boolean estado)
-    {
-        this.alguemAbastecendo = estado;
-    }
-
-    
 }
