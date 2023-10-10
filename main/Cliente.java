@@ -19,10 +19,11 @@ public class Cliente extends Thread
     private boolean estaSuspensa = false;
     private boolean foiTerminada = false;
     private String inTxt = "";
-    private final String keyClose = "fechar";
+    private final String keyClose = "encerrar";
     private DataOutputStream saida;
     private Socket socket;
     private DataInputStream entrada;
+    private int rotas = 0;
 
     public Cliente(String servIP, int servPort, String nome)
     {
@@ -35,12 +36,10 @@ public class Cliente extends Thread
     @Override
     public void run()
     {
-        try {
+        try 
+        {
             System.out.println("Inicia conexao");
             socket = new Socket(servIP, servPort);
-            saida = new DataOutputStream(socket.getOutputStream());
-            entrada = new DataInputStream(socket.getInputStream());
-
         } catch (UnknownHostException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -68,11 +67,14 @@ public class Cliente extends Thread
             }
 
             try {
-                write("teste " + getNome());
-                sleep(500);
-                System.out.println(read());
-                sleep(1000);
-                write("fechar");
+                while(rotas < 2)
+                {
+                    System.out.println(this.nome + " solicitando rota...");
+                    write("rota");
+                    System.out.println(this.nome + " => " + read() + " recebida!");
+                    this.dirigir();
+                }
+                write("encerrar");
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -83,7 +85,7 @@ public class Cliente extends Thread
         }
 
         try {
-            System.out.println("Fechando " + getNome());
+            System.out.println("Encerrando " + getNome() + "...");
             entrada.close();
             saida.close();
             socket.close();
@@ -93,14 +95,26 @@ public class Cliente extends Thread
         }
     }
 
+    private void dirigir() throws InterruptedException
+    {
+        for(int i=12;i>0;i--)
+        {
+            System.out.println(getNome() + ": " + i);
+            sleep(500);
+        }
+        rotas++;
+    }
+
     public void write(String texto) throws IOException
     {
+        saida = new DataOutputStream(socket.getOutputStream());
         this.saida.writeUTF(texto);
         this.inTxt = texto;
     }
 
     public String read() throws IOException
     {
+        entrada = new DataInputStream(socket.getInputStream());
         return this.entrada.readUTF();
     }
 

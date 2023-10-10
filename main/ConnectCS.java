@@ -27,13 +27,13 @@ public class ConnectCS extends Thread
                 socket = ss.accept();
                 System.out.println("Cliente conectado!");
                 // 3 - Cria uma thread para cuidar de cada
-                Servidor servidor = new Servidor(socket); // so pq Servidor tá como Runnable
-                Thread t = new Thread(servidor);
+                Thread t = new Servidor(socket);
                 t.start();
+                t.join();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("Encerrando conexoes...");
     }
-    
 }

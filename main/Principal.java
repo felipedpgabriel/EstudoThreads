@@ -10,7 +10,7 @@ public class Principal
     private static String inTxt = "";
     private static final String keyClose = "sair";
     private static int port = 11111;
-    public static void main(String[] args) throws IOException
+    public static void main(String[] args) throws IOException, InterruptedException
     {
         System.out.println("Inicia a bagaca!");
 
@@ -19,18 +19,21 @@ public class Principal
         System.out.println("Porta " + port + " aberta!");
 
         ConnectCS cs = new ConnectCS(serverSocket, numClients);
-        System.out.println("Aguardando clientes!");
+        System.out.println("Aguardando clientes...");
 
         for(int i=0;i<numClients;i++)
         {
             System.out.println("Criando cliente...");
             Cliente cliente = new Cliente("127.0.0." + (i+1), port, "Cliente" + (i+1));
+            System.out.println(cliente.getNome() + " | " + cliente.getServIP() +" criado!");
             try {
                 Thread.sleep(2000);
             } catch (Exception e) {
                 // TODO: handle exception
             }
         }
+
+        cs.join();
 
         System.out.println("Encerrando programa...");
         serverSocket.close(); // conexao
