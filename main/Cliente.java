@@ -16,9 +16,7 @@ public class Cliente extends Thread
     private String servIP;
     private int servPort;
     private String nome;
-    private boolean estaSuspensa = false;
-    private boolean foiTerminada = false;
-    private String inTxt = "";
+    private String msgOut = "";
     private final String keyClose = "encerrar";
     private DataOutputStream saida;
     private Socket socket;
@@ -36,7 +34,8 @@ public class Cliente extends Thread
     @Override
     public void run()
     {
-        try 
+        // conceta om o servidor
+        try
         {
             System.out.println("Inicia conexao");
             socket = new Socket(servIP, servPort);
@@ -48,31 +47,32 @@ public class Cliente extends Thread
             e.printStackTrace();
         }
 
-        while(!inTxt.equals(keyClose))
+        while(!msgOut.equals(keyClose))
         {
-            synchronized(this)
-            {
-                while(estaSuspensa)
-                {
-                    try {
-                        wait();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                if(this.foiTerminada)
-                {
-                    break;
-                }
-            }
-
             try {
                 while(rotas < 2)
                 {
                     System.out.println(this.nome + " solicitando rota...");
-                    write("rota");
-                    System.out.println(this.nome + " => " + read() + " recebida!");
-                    this.dirigir();
+                    this.write("rota"); // solicita rota
+                    while(!msgOut.equals("recebido")) // aguarda ate receber e executar a rota
+                    {
+                        System.out.println(this.nome + " aguardando rota...");
+                        String msgIn = this.read();
+                        if(msgIn.equals("ocupado"))
+                        {
+                            System.out.println("Aguardando liberacao...");
+                            synchronized(this)
+                            {
+                                wait();
+                            }
+                        }
+                        else
+                        {
+                            this.write("recebido");
+                            System.out.println(this.nome + " => " + msgIn + " recebida!");
+                            this.dirigir();
+                        }
+                    }
                 }
                 write("encerrar");
             } catch (InterruptedException e) {
@@ -105,37 +105,17 @@ public class Cliente extends Thread
         rotas++;
     }
 
-    public void write(String texto) throws IOException
+    private void write(String texto) throws IOException
     {
         saida = new DataOutputStream(socket.getOutputStream());
         this.saida.writeUTF(texto);
-        this.inTxt = texto;
+        this.msgOut = texto;
     }
 
-    public String read() throws IOException
+    private String read() throws IOException
     {
         entrada = new DataInputStream(socket.getInputStream());
         return this.entrada.readUTF();
-    }
-
-    public void suspender()
-    {
-        this.estaSuspensa = true;
-        System.out.println("Cliente " + this.nome + "suspenso!");
-    }
-
-    public synchronized void resumir()
-    {
-        this.estaSuspensa = false;
-        notify();
-        System.out.println("Cliente " + this.nome + "on!");
-    }
-
-    public synchronized void parar()
-    {
-        this.foiTerminada = true;
-        // notify();
-        System.out.println("Cliente " + this.nome + " encerrado!");
     }
 
     public String getNome() {

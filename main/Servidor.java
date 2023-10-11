@@ -14,8 +14,10 @@ public class Servidor extends Thread
     private Socket socket;
     private DataInputStream entrada;
     private DataOutputStream saida;
-    private static boolean terminada = false;
     private static int countRot = 1;
+    private static boolean rotListAcessed = false;
+    private String msgOut = "";
+
 
     public Servidor(Socket socket)
     {
@@ -29,16 +31,34 @@ public class Servidor extends Thread
         {
             try
             {
-                System.out.println("Aguardando solicitacao...");
+                System.out.println("Aguardando mensagem...");
                 // 4 - Define entrada do servidor
-                entrada = new DataInputStream(socket.getInputStream());
-                String mensagem = entrada.readUTF();
-                if(mensagem.equals("rota"))
+                String msgIn = read();
+                if(msgIn.equals("rota"))
                 {
-                    System.out.println("Liberando rota...");
-                    this.liberarRota();
+                    System.out.println("Rota solicitada!");
+                    do
+                    {
+                        if(rotListAcessed && !msgOut.equals("ocupado"))
+                        {
+                            System.out.println("Liberador de rotas ocupado");
+                            write("ocupado");
+                        }
+                        else if(!rotListAcessed)
+                        {
+                            rotListAcessed = true;
+                            System.out.println("Liberando rota...");
+                            this.liberarRota();
+                        }
+                    }while(msgOut.equals("ocupado"));
                 }
-                else if(mensagem.equals("encerrar"))
+                else if(msgIn.equals("recebido"))
+                {
+                    System.out.println("Confirmacao de rota recebida!");
+                    rotListAcessed = false;
+                    notifyAll();
+                }
+                else if(msgIn.equals("encerrar"))
                 {
                     System.out.println("Encerrando canal...");
                     socket.close();
@@ -61,19 +81,14 @@ public class Servidor extends Thread
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        finally
-        {
-            terminada = true;
-        }
     }
 
     public synchronized void liberarRota() throws InterruptedException
     {
         // 5 - Define saida do servidor
         try {
-            sleep(5000);
-            saida = new DataOutputStream(socket.getOutputStream());
-            saida.writeUTF("rota " + countRot);
+            sleep(4000);
+            this.write("rota " + countRot);
             countRot++;
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -81,7 +96,16 @@ public class Servidor extends Thread
         }
     }
 
-    public static boolean isTerminada() {
-        return terminada;
+    private String read() throws IOException
+    {
+        entrada = new DataInputStream(socket.getInputStream());
+        return this.entrada.readUTF();
     }
+
+    private void write(String texto) throws IOException
+    {
+        saida = new DataOutputStream(socket.getOutputStream());
+        this.saida.writeUTF(texto);
+        this.msgOut = texto;
+    }    
 }

@@ -26,11 +26,11 @@ public class Principal
             System.out.println("Criando cliente...");
             Cliente cliente = new Cliente("127.0.0." + (i+1), port, "Cliente" + (i+1));
             System.out.println(cliente.getNome() + " | " + cliente.getServIP() +" criado!");
-            try {
-                Thread.sleep(2000);
-            } catch (Exception e) {
-                // TODO: handle exception
-            }
+            // try {
+            //     Thread.sleep(100);
+            // } catch (Exception e) {
+            //     // TODO: handle exception
+            // }
         }
 
         cs.join();
