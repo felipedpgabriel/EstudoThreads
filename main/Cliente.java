@@ -4,129 +4,93 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
-import javax.xml.crypto.Data;
-
-/**
- * Classe para testar Threads por meio da heranca a classe Thread
- */
 public class Cliente extends Thread
 {
-    private String servIP;
-    private int servPort;
-    private String nome;
-    private String msgOut = "";
-    private final String keyClose = "encerrar";
-    private DataOutputStream saida;
+    // atributos de cliente
     private Socket socket;
+    private int servPort;
+    // IMP private String cliHost;
     private DataInputStream entrada;
-    private int rotas = 0;
+    private DataOutputStream saida;
+    // atributos de sincronizacao
+    private boolean ocupado = false;
+    private Object monitor = new Object(); // sincronizacao
+    // atributos da classe
+    private String nome;
 
-    public Cliente(String servIP, int servPort, String nome)
-    {
-        this.servIP = servIP;
-        this.servPort = servPort;
+    public Cliente(String nome, int servPort) { // IMP adc host e depois javadoc
         this.nome = nome;
-        this.start();
+        this.servPort = servPort;
+        // start(); IMP analisar necessidade
     }
 
     @Override
-    public void run()
-    {
-        // conceta om o servidor
-        try
-        {
-            System.out.println("Inicia conexao");
-            socket = new Socket(servIP, servPort);
-        } catch (UnknownHostException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    public void run() {
+        try {
+            // Estabelece conexão com o servidor
+            socket = new Socket("localhost", servPort); // IMP modificar o host (unico para cada)
+            entrada = new DataInputStream(socket.getInputStream());
+            saida = new DataOutputStream(socket.getOutputStream());
 
-        while(!msgOut.equals(keyClose))
-        {
-            try {
-                while(rotas < 2)
-                {
-                    System.out.println(this.nome + " solicitando rota...");
-                    this.write("rota"); // solicita rota
-                    while(!msgOut.equals("recebido")) // aguarda ate receber e executar a rota
+            for (int i = 0; i < 2; i++)
+            { // loop e sua condicional
+                synchronized (monitor) 
+                { // aguarda
+                    while (ocupado) 
                     {
-                        System.out.println(this.nome + " aguardando rota...");
-                        String msgIn = this.read();
-                        if(msgIn.equals("ocupado"))
-                        {
-                            System.out.println("Aguardando liberacao...");
-                            synchronized(this)
-                            {
-                                wait();
-                            }
-                        }
-                        else
-                        {
-                            this.write("recebido");
-                            System.out.println(this.nome + " => " + msgIn + " recebida!");
-                            this.dirigir();
-                        }
+                        monitor.wait();
+                    }
+                    // Solicita uma rota ao servidor
+                    System.out.println(nome + " solicitando rota..."); // DEBUG
+                    saida.writeUTF("rota");
+                    String resposta = entrada.readUTF();
+                    if (resposta.equals("ocupado")) 
+                    { // IMP nunca entrou aqui
+                        ocupado = true;
+                        System.out.println(nome + ": Aguardando rota..."); // DEBUG
+                        monitor.wait(); // Aguarda até ser notificado pelo servidor
+                    } 
+                    else 
+                    {
+                        System.out.println(nome + ": "+ resposta +" recebida. Dirigindo..."); // DEBUG
+                        saida.writeUTF("recebido");
+                        dirigir();
+                        // monitor.notify();
                     }
                 }
-                write("encerrar");
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
             }
-        }
 
-        try {
-            System.out.println("Encerrando " + getNome() + "...");
+            // Envia mensagem de encerramento ao servidor
+            System.out.println("Encerrando " + nome);
+            saida.writeUTF("encerrado");
+
+            // Fecha as conexões
             entrada.close();
             saida.close();
             socket.close();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
+        } 
+        catch (IOException | InterruptedException e)
+        {
             e.printStackTrace();
         }
     }
 
+    /**Simula a execucao de uma rota de transito (gasta um tempo fazendo algo)
+     * @throws InterruptedException
+     */
     private void dirigir() throws InterruptedException
     {
-        for(int i=12;i>0;i--)
+        for (int i = 12; i >= 0; i--)
         {
-            System.out.println(getNome() + ": " + i);
+            System.out.println(nome + ": " + i);
             sleep(500);
         }
-        rotas++;
-    }
-
-    private void write(String texto) throws IOException
-    {
-        saida = new DataOutputStream(socket.getOutputStream());
-        this.saida.writeUTF(texto);
-        this.msgOut = texto;
-    }
-
-    private String read() throws IOException
-    {
-        entrada = new DataInputStream(socket.getInputStream());
-        return this.entrada.readUTF();
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public String getServIP() {
-        return servIP;
-    }
-
-    public int getServPort() {
-        return servPort;
+        ocupado = false;
+        synchronized (monitor)
+        {
+            monitor.notify(); // Notifica o servidor que está livre
+        }
     }
 }
+

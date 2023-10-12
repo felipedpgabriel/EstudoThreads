@@ -1,45 +1,47 @@
 package main;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.net.ServerSocket;
+import java.util.ArrayList;
 
 public class Principal
 {
-    private static final int numClients = 2;
-    private static String inTxt = "";
-    private static final String keyClose = "sair";
-    private static int port = 11111;
-    public static void main(String[] args) throws IOException, InterruptedException
-    {
-        System.out.println("Inicia a bagaca!");
-
-        // 1 - Abre conexao
-        ServerSocket serverSocket = new ServerSocket(port);
-        System.out.println("Porta " + port + " aberta!");
-
-        ConnectCS cs = new ConnectCS(serverSocket, numClients);
-        System.out.println("Aguardando clientes...");
-
-        for(int i=0;i<numClients;i++)
+    private static final int NUM_CLIENTES = 3;
+    private static final int PORT = 11111;
+    private static ArrayList<Thread> clientes = new ArrayList<Thread>();
+    public static void main(String[] args) throws InterruptedException, IOException
+    {        
+        System.out.println("Inicia Principal.");
+        // Abre canal de conexao
+        ServerSocket serverSocket = new ServerSocket(PORT);
+        // Instancia Servidor
+        Thread servidor = new Servidor(serverSocket);
+        servidor.start();
+        // Cria clientes
+        for(int i=1;i<=NUM_CLIENTES;i++)
         {
-            System.out.println("Criando cliente...");
-            Cliente cliente = new Cliente("127.0.0." + (i+1), port, "Cliente" + (i+1));
-            System.out.println(cliente.getNome() + " | " + cliente.getServIP() +" criado!");
-            // try {
-            //     Thread.sleep(100);
-            // } catch (Exception e) {
-            //     // TODO: handle exception
-            // }
+            Cliente cliente = new Cliente("Cliente" + i, PORT); // IMP adicionar host individual para cada
+            clientes.add(cliente);
+            cliente.start();
         }
+        // Condicional o fim do programa ao fim da vida dos clientes
+        aguardaThreads(clientes);
+        // Encerra programa
+        System.out.println("Encerrando Principal");
+        serverSocket.close();
 
-        cs.join();
-
-        System.out.println("Encerrando programa...");
-        serverSocket.close(); // conexao
-
-        System.out.println("Fim do programa!");
+        System.exit(0);
     }
-    
-}
 
+    /**Roda o metodo join em todos as Threads de uma lista
+     * @param lista
+     * @throws InterruptedException
+     */
+    private static void aguardaThreads(ArrayList<Thread> lista) throws InterruptedException
+    {
+        for(int i=0;i<lista.size();i++)
+        {
+            lista.get(i).join();
+        }
+    }
+}
